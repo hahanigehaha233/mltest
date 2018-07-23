@@ -3,3 +3,5 @@ code/
 venv/
 *.pyc
 *-checkpoint.ipynb
+*.xml
+*.iml
