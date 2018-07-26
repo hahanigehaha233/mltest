@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[247]:
+# In[2]:
 
 
 import pandas as pd
@@ -16,21 +16,36 @@ mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显�
 from sklearn.cross_validation import train_test_split
 
 
-# In[288]:
+# In[92]:
 
 
 figsize=(12,5)
-regex_a = "Survived|Age_.*|SibSp|Parch_*|Fare_.*|Cabin_*|Embarked_.*|Sex_.*|Pclass.*|Age_Pclass_scaled|Age_Sex_female_scaled"
-data = pd.read_csv('titanic_data/train.csv')
+regex_a = "Survived|Age_*|SibSp|Parch_*|Fare_.*|Cabin_*|Embarked_.*|Sex_.*|Pclass.*|Age_Pclass_scaled|Age_Sex_female_scaled"
+age_filter_train = ['Age','Survived','Fare', 'Parch', 'SibSp', 'Pclass']
+age_filter_test = ['Age','Fare', 'Parch', 'SibSp', 'Pclass']
 scaler = preprocessing.StandardScaler()
 
 
-# In[249]:
+# In[102]:
 
 
 # The model of feture Age
 def set_Age_Gap(df):
-    df.loc[(df.Age.isnull()),'Age'] = df.Age.mean()
+    from sklearn.ensemble import RandomForestRegressor
+    if("Survived" in df.columns):
+        age_df = df[age_filter_train]
+    else:
+        age_df = df[age_filter_test]
+    age_df_notnull = age_df.loc[(df['Age'].notnull())]
+    age_df_isnull = age_df.loc[(df['Age'].isnull())]
+    X = age_df_notnull.values[:,1:]
+    Y = age_df_notnull.values[:,0]
+    # use RandomForestRegression to train data
+    RFR = RandomForestRegressor(n_estimators=1000, n_jobs=-1)
+    RFR.fit(X,Y)
+    predictAges = RFR.predict(age_df_isnull.values[:,1:])
+    df.loc[df['Age'].isnull(), ['Age']]= predictAges
+    #df.loc[(df.Age.isnull()),'Age'] = df.Age.mean()
     return df
 
 def set_Age_Discrete(df):
@@ -40,7 +55,7 @@ def set_Age_Discrete(df):
     return dummies_age_Discrete
 
 
-# In[276]:
+# In[5]:
 
 
 # The model of feture Cabin 
@@ -51,7 +66,7 @@ def set_Cabin_type(df):
     return df
 
 
-# In[241]:
+# In[6]:
 
 
 # The model of Fare
@@ -59,7 +74,7 @@ def set_Scale(df,name):
     return scaler.fit_transform(df[name].values.reshape(-1,1))
 
 
-# In[291]:
+# In[51]:
 
 
 def set_Feature(data):
@@ -77,7 +92,7 @@ def set_Feature(data):
 
     b = set_Age_Discrete(data)
 
-    df = pd.concat([data, dummies_Cabin, dummies_Embarked, dummies_Sex, dummies_Pclass,b], axis=1)
+    df = pd.concat([data, dummies_Cabin, dummies_Embarked, dummies_Sex, dummies_Pclass, b], axis=1)
 
     df['Fare_scaled'] = set_Scale(df,"Fare")
 
@@ -85,20 +100,19 @@ def set_Feature(data):
     df['Age_Sex_female_scaled'] = set_Scale(df,"Age_Sex_female")
     df['Age_Pclass'] = df['Age']*df['Pclass']
     df['Age_Pclass_scaled'] = set_Scale(df,"Age_Pclass")
-    df['Parch_SibSp'] = df['Parch']*df['SibSp']
     df.drop(['Age_Pclass','Age_Sex_female','Pclass','Cabin', 'Name', 'Sex', 'Ticket', 'Embarked','Fare','Age'], axis=1, inplace=True)
     
     return df
 
 
-# In[243]:
+# In[8]:
 
 
 def get_Feature(data,regex):
     return set_Feature(data).filter(regex=regex_a)
 
 
-# In[244]:
+# In[9]:
 
 
 def get_X_y(df):
@@ -110,16 +124,16 @@ def get_X_y(df):
     return X,y
 
 
-# In[336]:
+# In[111]:
 
 
-
+data = pd.read_csv('titanic_data/train.csv')
 df = get_Feature(data,regex_a)
-X_train,X_test,y_train,y_test = train_test_split(df.iloc[:,1:],df.iloc[:,0],test_size=0.650,random_state=1)
+X_train,X_test,y_train,y_test = train_test_split(df.iloc[:,1:],df.iloc[:,0],test_size=0.8,random_state=1)
 #X_train
 
 
-# In[333]:
+# In[112]:
 
 
 # 对cross validation数据进行预测
@@ -140,7 +154,7 @@ pipe_titanic.score(X_test,y_test)
 pipe_titanic.get_params();
 
 
-# In[334]:
+# In[114]:
 
 
 from sklearn.learning_curve import learning_curve
@@ -198,7 +212,7 @@ plt.ylim([0.6,1.0])
 plt.show()
 
 
-# In[335]:
+# In[113]:
 
 
 data_result = pd.read_csv("Titanic_data/test.csv")
@@ -206,5 +220,5 @@ data_result.loc[ (data_result.Fare.isnull()), 'Fare' ] = 0
 data_pre = get_Feature(data_result,regex_a)
 predictions = pipe_titanic.predict(data_pre)
 result = pd.DataFrame({'PassengerId':data_result['PassengerId'].values, 'Survived':predictions.astype(np.int32)})
-result.to_csv("Titanic_data/35+65.csv", index=False)
+result.to_csv("Titanic_data/7+3Ageforrf.csv", index=False)
 
