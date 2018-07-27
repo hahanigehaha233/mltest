@@ -118,6 +118,18 @@ plt.legend([u"男性/低级舱"], loc='best')
 plt.show()
 
 
+# In[42]:
+
+
+data['Survived'].value_counts().plot.pie(autopct = '%1.2f%%')
+plt.figure(figsize=(90,5))
+a = data['Age'].value_counts()
+data['Age'].hist(bins=a.size)
+a.sort_index()
+for c,b in zip(a.index,a.values):
+    plt.text(c,b+0.05,'%.f' % b, ha = 'center',va = 'bottom',fontsize=10)
+
+
 # In[10]:
 
 
