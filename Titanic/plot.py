@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[7]:
 
 
 import pandas as pd
@@ -9,31 +9,33 @@ import numpy as np
 from pandas import Series, DataFrame
 import matplotlib.pyplot as plt
 from pylab import mpl
+from sklearn.cross_validation import train_test_split
 mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
 figsize=(12,5)
-data_train = pd.read_csv('Titanic_data/train.csv')
-
-
-# In[10]:
-
-
-# Learning Curve
-import matplotlib.pyplot as plt
-from sklearn.learning_curve import learning_curve
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
+data = pd.read_csv('Titanic_data/train.csv')
 import logistic
+regex_a = "Survived|Age_*|SibSp|Parch_*|Fare_.*|Cabin_*|Embarked_.*|Sex_.*|Pclass.*|Age_Pclass_scaled|Age_Sex_female_scaled"
+df = logistic.get_Feature(data,regex_a)
+X_train,X_test,y_train,y_test = train_test_split(df.iloc[:,1:],df.iloc[:,0],test_size=0.8,random_state=1)
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
 pipe_titanic = Pipeline([
-                        ('clf',LogisticRegression(C=1000.0,penalty='l2',tol=1e-4))])
-df = logistic.set_Feature(data_train)
-X, y = logistic.get_X_y(df)
+                        ('clf',LogisticRegression(C=10.0,penalty='l2',tol=1e-6))])
+pipe_titanic.fit(X_train,y_train)
 
+
+# In[8]:
+
+
+from sklearn.learning_curve import learning_curve
 train_size, train_scores, test_scores = learning_curve(estimator=pipe_titanic,
-                                                      X=X,
-                                                      y=y,
+                                                      X=X_train,
+                                                      y=y_train,
                                                       train_sizes=np.linspace(0.1,1.0,10),
-                                                      cv=6,
+                                                      cv=10,
                                                       n_jobs=1)
 
 train_mean = np.mean(train_scores, axis=1)
@@ -53,18 +55,43 @@ plt.ylabel('Accuracy')
 plt.legend(loc = "upper right")
 plt.ylim([0.6,1.0])
 plt.show()
-#pipe_titanic.fit(X,y)
-#pipe_titanic.fit(train_df.values[:,1:], train_df.values[:,0])
 
-#pipe_titanic = 
+from sklearn.learning_curve import validation_curve
+param_range = [0.001,0.01,0.1,1.0,10.0,100.0,1000.0]
+train_scores,test_scores=validation_curve(estimator = pipe_titanic,
+                                          X = X_train,
+                                          y=y_train,
+                                          param_name='clf__C',
+                                          param_range = param_range,
+                                          cv = 6
+                    )
+train_mean = np.mean(train_scores, axis=1)
+train_std = np.std(train_scores, axis=1)
+test_mean = np.mean(test_scores, axis=1)
+test_std = np.std(test_scores,axis=1)
+plt.plot(param_range, train_mean,
+        color = 'blue', marker='o',
+        markersize=5,label = 'Training accuracy')
+plt.plot(param_range, test_mean,
+        color='green',linestyle='--',
+        marker='s',markersize=5,
+        label='validation accuracy')
+plt.grid()
+plt.xscale('log')
+plt.xlabel('Parameter C')
+plt.ylabel('Accuracy')
+plt.legend(loc = "upper right")
+plt.ylim([0.6,1.0])
+plt.show()
 
 
-# In[2]:
+# In[9]:
 
 
 fig = plt.figure(figsize=figsize)
 fig.set(alpha=0.65) # 设置图像透明度，无所谓
 plt.title(u"根据舱等级和性别的获救情况")
+data_train = data
 
 ax1=fig.add_subplot(141)
 data_train.Survived[data_train.Sex == 'female'][data_train.Pclass != 3].value_counts().plot(kind='bar', label="female highclass", color='#FA2479')
@@ -91,7 +118,7 @@ plt.legend([u"男性/低级舱"], loc='best')
 plt.show()
 
 
-# In[3]:
+# In[10]:
 
 
 from pylab import mpl
@@ -145,7 +172,7 @@ plt.ylabel(u"人数")
 plt.show()
 
 
-# In[4]:
+# In[11]:
 
 
 fig = plt.figure()
